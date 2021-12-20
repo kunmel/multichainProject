@@ -1,5 +1,5 @@
 # Multichain项目
-
+**本项目原版本代码，由于写的时候非常急，并不规范，请尽量避免这样写**
 * 前端使用vue.js，后端使用go-gin实现
 * 使用fabric-sdk-go连接fabricv1.4.3
 * 使用golang、rpc连接以太坊私链
