@@ -65,3 +65,61 @@
    contract = myContract.new({from: myAddr, data: bin, gas: 1000000})
    contract.address
    ```
+
+## 以太坊较详细的流程
+
+1. 各依赖工具或包等的配置
+
+2. 写入创世区块文件
+
+   ```
+   {
+       "config": {
+           "chainId": 8888,
+           "homesteadBlock": 0,
+           "daoForkBlock": 0,
+           "daoForkSupport": true,
+           "eip150Block": 0,
+           "eip155Block": 0,
+           "eip158Block": 0,
+           "byzantiumBlock": 0,
+           "constantinopleBlock": 0,
+           "petersburgBlock": 0,
+           "ethash": {}
+       },
+       "nonce": "0x42",
+       "timestamp": "0x0",
+       "extraData": "0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa",
+       "gasLimit": "0xffffffff",
+       "difficulty": "0x1",
+       "alloc": {
+           "093f59f1d91017d30d8c2caa78feb5beb0d2cfaf": {
+               "balance": "0xffffffffffffffff"
+           },
+           "ddf7202cbe0aaed1c2d5c4ef05e386501a054406": {
+               "balance": "0xffffffffffffffff"
+           }
+       }
+   }
+   ```
+
+3. 初始化创世区块
+
+   ```
+   geth --datadir data init genesis.json
+   ```
+
+4. 启动节点
+
+   ```
+   geth --datadir data --networkid 8888 --rpc --rpccorsdomain "*" --nodiscover console --allow-insecure-unlock
+   ```
+
+5. 创建新用户，查看余额，挖矿
+
+   ```
+    personal.newAccount()
+    myAddress = "0xf45fd17e0535d97ab291b91ee3f675d403ca5efb"
+    eth.getBalance(myAddress)
+   miner.start();admin.sleepBlocks(1);miner.stop()
+   ```
