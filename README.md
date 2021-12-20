@@ -8,22 +8,7 @@
 
 ## 项目结构
 
-├── gin_demo
-│   ├── handlers
-│   ├── main.go	#后端代码入口
-│   ├── middleware
-│   ├── router
-│   └── vues	#vuejs前端代码
-├── key	#使用的秘钥
-├── multichain_proto	# grpc使用的配置文件
-├── package-lock.json	# 项目包版本管理文件
-├── README.md
-├── sgx-multichain-eth	# 连接以太坊代码
-│   ├── ethserver.go	# 连接以太坊代码入口
-│   ├── smartContract	# 以太坊中的智能合约
-└── sgx-multichain-fab	# 连接fabric代码
-    ├── chaincode	# fabric的链码，实现了读写ledger功能
-    └── fabserver.go	# 连接fabric代码入口
+![](./img/projectTree.png)
 
 ## 运行流程
 
