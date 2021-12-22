@@ -1,5 +1,3 @@
-/* 加入了事件，请把此文件，调换掉fabric-samples项目中的同名文件 */
-
 /*
 Copyright IBM Corp. 2016 All Rights Reserved.
 
@@ -25,8 +23,11 @@ package main
 //hard-coding.
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	pb "github.com/hyperledger/fabric/protos/peer"
@@ -36,6 +37,11 @@ import (
 type SimpleChaincode struct {
 }
 
+type LedgerData struct {
+	ID int
+	Price string
+	Label string
+}
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 	fmt.Println("ex02 Init")
 	_, args := stub.GetFunctionAndParameters()
@@ -71,37 +77,28 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 		return shim.Error(err.Error())
 	}
 
-	var as []byte
-	for _, a := range args {
-		as = append(as, []byte(a)...)
-	}
-	stub.SetEvent("InitEvent", as)
-
 	return shim.Success(nil)
 }
 
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 	fmt.Println("ex02 Invoke")
 	function, args := stub.GetFunctionAndParameters()
-
-	var as []byte
-	for _, a := range args {
-		as = append(as, []byte(a)...)
-	}
-
 	if function == "invoke" {
-		stub.SetEvent("InvokeEvent", as)
 		// Make payment of X units from A to B
 		return t.invoke(stub, args)
 	} else if function == "delete" {
-		stub.SetEvent("DeleteEvent", as)
 		// Deletes an entity from its state
 		return t.delete(stub, args)
 	} else if function == "query" {
-		stub.SetEvent("QueryEvent", as)
 		// the old "Query" is now implemtned in invoke
 		return t.query(stub, args)
-	}
+	} else if function == "sgxQuery" {
+		return t.sgxQuery(stub, args)
+	}  else if function == "writeLedger" {
+		return t.writeLedger(stub, args)
+	} else if function == "readLedger" {
+		return t.readLedger(stub,args)
+	} 
 
 	return shim.Error("Invalid invoke function name. Expecting \"invoke\" \"delete\" \"query\"")
 }
@@ -206,6 +203,76 @@ func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string)
 	jsonResp := "{\"Name\":\"" + A + "\",\"Amount\":\"" + string(Avalbytes) + "\"}"
 	fmt.Printf("Query Response:%s\n", jsonResp)
 	return shim.Success(Avalbytes)
+}
+
+func (t *SimpleChaincode) sgxQuery(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	var buffer bytes.Buffer
+	if args == nil {
+		buffer.WriteString("there is no-chain data used in this Tx.")
+		return shim.Success(buffer.Bytes())
+	}
+	queryArgs := Split47(args[0])
+	buffer.WriteString(args[0])
+	for _,v := range queryArgs {
+		value, err := stub.GetState(v)
+		if err != nil {
+			jsonResp := "{\"Error\":\"Failed to get state for " + v + "\"}"
+			return shim.Error(jsonResp)
+		}
+		if value == nil {
+			jsonResp := "{\"Error\":\"Nil amount for " + v + "\"}"
+			return shim.Error(jsonResp)
+		}
+		jsonResp := "{\"Name\":\"" + v + "\",\"Amount\":\"" + string(value) + "\"}"
+		fmt.Println(jsonResp)
+		buffer.WriteString("/")
+		buffer.Write(value)
+	}
+	// 此处使用的逻辑是将传入的arg[0]先放入buffer之后将其值按顺序放入buffer
+	return shim.Success(buffer.Bytes())
+}
+
+
+func (t *SimpleChaincode) writeLedger(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	ID,_ := strconv.Atoi(args[0])
+	data := LedgerData{ID: ID, Price: args[1], Label: args[2]}
+	key, err := stub.CreateCompositeKey(args[0], args[1:])
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	stub.PutState(key, bytes)
+	return shim.Success(nil)
+}
+
+func (t *SimpleChaincode) readLedger(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	re, err := stub.GetStateByPartialCompositeKey(args[0],[]string{})
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	defer re.Close()
+	for re.HasNext() {
+		responseRange, err := re.Next()
+		if err != nil {
+			fmt.Println(err)
+		}
+		data := new(LedgerData)
+		err = json.Unmarshal(responseRange.Value, data)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(responseRange.Key, data)
+	}
+	return shim.Success(nil)
+}
+
+
+
+func Split47(strIn string)  []string {
+	return strings.Split(strIn, "/")
 }
 
 func main() {
